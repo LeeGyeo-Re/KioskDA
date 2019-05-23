@@ -1,7 +1,8 @@
-from flask import Flask
+from flask import Flask, request
 from pymongo import MongoClient
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
+import re
 connection = MongoClient("mongodb://master:master1@ds147746.mlab.com:47746/app_7")    #mongodb 주소 입력
 db = connection['app_7']             #mongodb database 입력
 userCollection = db['users']             #collection입력
@@ -187,16 +188,22 @@ class UserData(object):
         self.resultArr = []
         print("시작합니다")
         for ii in getUserId():
-            id = ii['uuid']
-            user = mergeUser(id)
+            uid = ii['uuid']
+            user = mergeUser(uid)
             for u in user:
                 temp = []
                 temp.append(u['uuid'])
                 temp.append(u['tid'])
                 temp.append(u['count'])
-                for t in temp:
-                    print(t)
                 self.resultArr.append(temp)
+
+        recommandList = []  # 여기에 넣어주세요 추천매장목록
+        for iii in getUserId():
+            uid = iii['uuid']
+            query = {"uuid": uid}
+            newvalue = {"$set": {"recommends": recommandList}}
+            userCollection.update_one(query, newvalue)
+
         print("끝")
         print("training Runtime: %0.2f Minutes" % ((time.time() - start_vect) / 60))
 
@@ -206,9 +213,11 @@ scheduler = BackgroundScheduler()
 UD.makeUserList()
 scheduler.add_job(func=UD.makeUserList, trigger="interval", seconds=3600)  # seconds로 분기 시간을 조정할 수 있음
 scheduler.start()
-@app.route('/recommand')
+
+
+@app.route('/recommand', methods=["GET"])
 def recommand():
-    return "분석된 데이터 전송"
+    return "dd"
 
 
 if __name__ == '__main__':
