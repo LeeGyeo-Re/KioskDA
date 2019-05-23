@@ -1,14 +1,75 @@
 from flask import Flask
 from pymongo import MongoClient
 from apscheduler.schedulers.background import BackgroundScheduler
-
+import time
 connection = MongoClient("mongodb://master:master1@ds147746.mlab.com:47746/app_7")    #mongodb 주소 입력
 db = connection['app_7']             #mongodb database 입력
 userCollection = db['users']             #collection입력
 recordCollection = db['records']
 interestCollection = db['interest']
-print("어디가 문제야")
+
 app = Flask(__name__)
+
+# userCollection.insert({
+#     "uuid": "uuid1000",
+#     "age": 69,
+#     "gender": "male",
+#     "likes": ["1", "2", "5"],
+#     "recommends": []
+# })
+# print("어디가 문제야")
+# recordCollection.insert({
+#     "uuid": "uuid1000",
+#     "tid": "1",
+#     "steps": [
+#         {
+#             "stepName":"step1",
+#             "startedAt": "2019-05-22 00:00:00.000",
+#             "finishedAt": "2019-05-22 00:01:00.000"
+#         },
+#         {
+#             "stepName":"step2",
+#             "startedAt": "2019-05-22 00:01:00.000",
+#             "finishedAt": "2019-05-22 00:02:00.000"
+#         }
+#         ,
+#         {
+#             "stepName":"step3",
+#             "startedAt": "2019-05-22 00:02:00.000",
+#             "finishedAt": "2019-05-22 00:03:00.000"
+#         }
+#     ],
+#     "success": True
+# })
+# recordCollection.insert({
+#     "uuid": "uuid1000",
+#     "tid": "2",
+#     "steps": [
+#         {
+#             "stepName":"step1",
+#             "startedAt": "2019-05-23 00:00:00.000",
+#             "finishedAt": "2019-05-23 00:01:00.000"
+#         },
+#         {
+#             "stepName":"step2",
+#             "startedAt": "2019-05-23 00:01:00.000",
+#             "finishedAt": "2019-05-23 00:02:00.000"
+#         }
+#         ,
+#         {
+#             "stepName":"step3",
+#             "startedAt": "2019-05-23 00:02:00.000",
+#             "finishedAt": "2019-05-23 00:03:00.000"
+#         },
+#         {
+#             "stepName":"step3",
+#             "startedAt": "2019-05-23 00:02:00.000",
+#             "finishedAt": "2019-05-23 00:03:00.000"
+#         }
+#     ],
+#     "success": True
+# })
+
 
 @app.route('/')
 def hello_world():
@@ -19,25 +80,25 @@ def getUser(uuid):
     """
     DB에 있는 User collection중 uuid와 맞는 데이터 가져옴
     """
-    print("어디가 문제야1")
+    # print("어디가 문제야1")
     user = userCollection.find({
         "uuid": uuid
     })
-    print("어디가 문제야1")
+    # print("어디가 문제야1")
     return user
 
 def getUserId():
     """
         DB에 있는 User collection 가져옴
     """
-    print("어디가 문제야2")
+    # print("어디가 문제야2")
     return userCollection.find()
 
 def getRecordTid(uuid):
     """
         DB에 있는 record Usercollection 가져옴(최근 50개)
     """
-    print("어디가 문제야3")
+    # print("어디가 문제야3")
     records = recordCollection.find({
         "uuid": uuid
     })
@@ -46,11 +107,11 @@ def getRecordTid(uuid):
         records = records[0]
     else:
         records = []
-    print("어디가 문제야3")
+    # print("어디가 문제야3")
     return records
 
 def countlist(list):
-    print("어디가 문제야4")
+    # print("어디가 문제야4")
     dic = {}
     if list:
         return dic
@@ -64,7 +125,7 @@ def mergeUser(uuid):
     """
     User ID와 record 목록을 가져와서 필요한 데이터 셋으로 합침 
     """
-    print("어디가 문제야5")
+    # print("어디가 문제야5")
     user = getUser(uuid)
     user = list(user)
     user = user[0]
@@ -86,14 +147,14 @@ def mergeUser(uuid):
         result['tid'] = key
         result['count'] = dicts[key]
         resultlist.append(result)
-        print("어디가 문제야5")
+        # print("어디가 문제야5")
     return resultlist
 
 def startUser(uuid):
     """
     유저가 처음 시작유저인지 판단 
     """
-    print("어디가 문제야6")
+    # print("어디가 문제야6")
     if getRecordTid(uuid):
         return False
     else:
@@ -103,7 +164,7 @@ def getNotInterested(uuid):
     """
     notInterested 가져옴 
     """
-    print("어디가 문제야7")
+    # print("어디가 문제야7")
     interest = interestCollection.find({
         'uuid': uuid
     })
@@ -121,8 +182,10 @@ class UserData(object):
         """
         데이터 값 받아서 리스트로 만들어줌
         """
-        print("어디가 문제야8")
+        # print("어디가 문제야8")
+        start_vect = time.time()
         self.resultArr = []
+        print("시작합니다")
         for ii in getUserId():
             id = ii['uuid']
             user = mergeUser(id)
@@ -134,12 +197,14 @@ class UserData(object):
                 for t in temp:
                     print(t)
                 self.resultArr.append(temp)
-            print("한줄")
+        print("끝")
+        print("training Runtime: %0.2f Minutes" % ((time.time() - start_vect) / 60))
 
 UD = UserData()
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=UD.makeUserList, trigger="interval", seconds=5)  # seconds로 분기 시간을 조정할 수 있음
+UD.makeUserList()
+scheduler.add_job(func=UD.makeUserList, trigger="interval", seconds=3600)  # seconds로 분기 시간을 조정할 수 있음
 scheduler.start()
 @app.route('/recommand')
 def recommand():
