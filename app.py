@@ -114,10 +114,10 @@ def getRecordTid(uuid):
 def countlist(list):
     # print("어디가 문제야4")
     dic = {}
-    if list:
+    if not list:
         return dic
     for i in list:
-        if not dic[i]:
+        if i not in dic:
             dic[i] = 1
         else:
             dic[i] += 1
