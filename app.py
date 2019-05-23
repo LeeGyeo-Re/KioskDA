@@ -2,7 +2,6 @@ from flask import Flask, request
 from pymongo import MongoClient
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
-import re
 connection = MongoClient("mongodb://master:master1@ds147746.mlab.com:47746/app_7")    #mongodb 주소 입력
 db = connection['app_7']             #mongodb database 입력
 userCollection = db['users']             #collection입력
@@ -72,6 +71,7 @@ app = Flask(__name__)
 # })
 
 
+
 @app.route('/')
 def hello_world():
     return 'Hello World!'
@@ -99,22 +99,22 @@ def getRecordTid(uuid):
     """
         DB에 있는 record Usercollection 가져옴(최근 50개)
     """
-    # print("어디가 문제야3")
+    # print("어디가 문제야3-1")
     records = recordCollection.find({
         "uuid": uuid
     })
+    result = []
     records = list(records)
-    if records:
-        records = records[0]
-    else:
-        records = []
-    # print("어디가 문제야3")
+
+    # print("어디가 문제야3-2")
+
     return records
 
 def countlist(list):
     # print("어디가 문제야4")
     dic = {}
-    if not list:
+
+    if len(list) is 0:
         return dic
     for i in list:
         if i not in dic:
@@ -131,6 +131,9 @@ def mergeUser(uuid):
     user = list(user)
     user = user[0]
     records = getRecordTid(uuid)
+    listr = []
+    for r in records:
+        listr.append(r['tid'])
     resultlist = []
     result = {}
     dicts = {}
@@ -138,17 +141,17 @@ def mergeUser(uuid):
     if len(records) is 0:
         dicts = countlist(user['likes'])
     else:
-        dicts = countlist(records['tid'])
-    for key in dicts.keys():
+        dicts = countlist(listr)
+    print(uuid)
+    kk = list(dicts.keys())
+    # print(kk)
+    for key in kk:
+        result = {}
         result['uuid'] = uuid
-        if "age" in user:
-            result['age'] = user['age']
-        if "gender" in user:
-            result['gender'] = user['gender']
         result['tid'] = key
         result['count'] = dicts[key]
         resultlist.append(result)
-        # print("어디가 문제야5")
+
     return resultlist
 
 def startUser(uuid):
@@ -197,13 +200,12 @@ class UserData(object):
                 temp.append(u['count'])
                 self.resultArr.append(temp)
 
-        recommandList = []  # 여기에 넣어주세요 추천매장목록
         for iii in getUserId():
             uid = iii['uuid']
+            recommandList = []  # 여기에 넣어주세요 추천매장목록
             query = {"uuid": uid}
             newvalue = {"$set": {"recommends": recommandList}}
             userCollection.update_one(query, newvalue)
-
         print("끝")
         print("training Runtime: %0.2f Minutes" % ((time.time() - start_vect) / 60))
 
